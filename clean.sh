@@ -73,7 +73,8 @@ function cleanup_leftovers() {
     for e in "${RAS_ELEMENTS[@]}"; do
         # Expand any tilda, etc
         e="${e/#\~/$HOME}"
-        expanded="$(echo $e)"
+        declare -a expanded
+        expanded=($(echo $e))
         for i in "${expanded[@]}"; do
             if [[ -d "$i" ]]; then
                 echo "[-] Removing directory : $i"
