@@ -2,6 +2,7 @@
 # Attempt to remove all traces of RemoteAccess
 
 declare -a RAS_ELEMENTS
+# shellcheck disable=SC2088 # Because we prefer to use tilde than $HOME here
 RAS_ELEMENTS=(
   # Root elements
     "/Applications/Citrix Workspace.app"
@@ -74,7 +75,7 @@ function cleanup_leftovers() {
     for e in "${RAS_ELEMENTS[@]}"; do
         # Expand any tilda, etc
         e="${e/#\~/$HOME}"
-        declare -a expanded
+        # shellcheck disable=SC2207,SC2116,SC2086 # Because it works even if its ugly
         expanded=($(echo $e))
         for i in "${expanded[@]}"; do
             if [[ -d "$i" ]]; then
@@ -104,8 +105,8 @@ function cleanup_receipts() {
 if [[ "$1" =~ "-f" ]]; then
     # Get privs
     sudo -l >/dev/null 2>&1
-    cleanup_leftovers
-    cleanup_receipts
+    cleanup_leftovers "force"
+    cleanup_receipts "force"
     echo "[+] Done"
 else
     echo "[!] Check-only mode, use $0 --force to remove files"
