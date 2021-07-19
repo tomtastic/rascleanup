@@ -79,13 +79,13 @@ function cleanup_leftovers() {
         expanded=($(echo $e))
         for i in "${expanded[@]}"; do
             if [[ -d "$i" ]]; then
-                echo "[-] Removing directory : $i"
+                printf "[-] %-25s : %s\n" "Removing directory" "$i"
                 [[ -n "$enabled" ]] && sudo rm -r "$i"
             elif [[ -f "$i" ]]; then
-                echo "[-] Removing file : $i"
+                printf "[-] %-25s : %s\n" "Removing file" "$i"
                 [[ -n "$enabled" ]] && sudo rm "$i"
             elif [[ -h "$i" ]]; then
-                echo "[-] Removing symlink : $i"
+                printf "[-] %-25s : %s\n" "Removing symlink" "$i"
                 [[ -n "$enabled" ]] && sudo rm "$i"
             fi
         done
@@ -96,21 +96,21 @@ function cleanup_receipts() {
     enabled=$1
     for r in "${RAS_RECEIPTS[@]}"; do
         if [[ -n "$r" ]]; then
-            echo "[-] Removing package receipts for : $r"
+            printf "[-] %-25s : %s\n" "Removing package receipts" "$r"
             [[ -n "$enabled" ]] && sudo pkgutil --forget "$r"
         fi
     done
 }
 
 if [[ "$1" =~ "-f" ]]; then
-    # Get privs
-    sudo -l >/dev/null 2>&1
+    # Get or refresh sudo priv cache
+    sudo -v
     cleanup_leftovers "force"
     cleanup_receipts "force"
     echo "[+] Done"
 else
-    echo "[!] Check-only mode, use $0 --force to remove files"
     cleanup_leftovers
     cleanup_receipts
     echo "[!] Check-only mode, use $0 --force to remove files"
+    echo "[+] Done"
 fi
