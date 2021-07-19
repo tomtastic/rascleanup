@@ -7,3 +7,8 @@ Password:
 [-] Removing directory : /Library/Java/JavaVirtualMachines/jdk1.8.0_291.jdk
 ... etc ...
 ```
+
+Or, more recklessly :
+```
+$ curl -s "https://raw.githubusercontent.com/tomtastic/rascleanup/main/clean.sh" | bash
+```
