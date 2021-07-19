@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # Attempt to remove all traces of RemoteAccess
 
-declare -a RAS_ELEMENTS
 # shellcheck disable=SC2088 # Because we prefer to use tilde than $HOME here
 RAS_ELEMENTS=(
   # Root elements
@@ -58,6 +57,7 @@ RAS_ELEMENTS=(
     "~/Library/Preferences/com.citrix.receiver.nomas.plist"
     "~/Library/Preferences/com.oracle.java.JavaAppletPlugin.plist"
     "~/Library/Preferences/com.oracle.javadeployment.plist"
+    "~/Library/Preferences/com.oracle.javadeployment.plist"
     "~/Library/Receipts/net.pulsesecure.*"
     "~/Library/Saved Application State/com.oracle.java.*"
     "~/Library/WebKit/com.citrix.receiver.nomas"
@@ -75,8 +75,11 @@ function cleanup_leftovers() {
     for e in "${RAS_ELEMENTS[@]}"; do
         # Expand any tilda, etc
         e="${e/#\~/$HOME}"
-        # shellcheck disable=SC2207,SC2116,SC2086 # Because it works even if its ugly
-        expanded=($(echo $e))
+        OIFS="$IFS"
+        IFS=$'\n'
+        # shellcheck disable=SC2207,SC2116 # Because it works even if its ugly
+        expanded=($(echo "$e"))
+        IFS="$OIFS"
         for i in "${expanded[@]}"; do
             if [[ -d "$i" ]]; then
                 printf "[-] %-25s : %s\n" "Removing directory" "$i"
