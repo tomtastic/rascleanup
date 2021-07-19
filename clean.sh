@@ -70,6 +70,7 @@ while read -r; do
 done <<< "$(pkgutil --packages | grep -Ei 'citrix|pulse|oracle.jdk|oracle.jre')"
 
 function cleanup_leftovers() {
+    enabled="$1"
     for e in "${RAS_ELEMENTS[@]}"; do
         # Expand any tilda, etc
         e="${e/#\~/$HOME}"
@@ -78,30 +79,37 @@ function cleanup_leftovers() {
         for i in "${expanded[@]}"; do
             if [[ -d "$i" ]]; then
                 echo "[-] Removing directory : $i"
-                sudo rm -r "$i"
+                [[ -n "$enabled" ]] && sudo rm -r "$i"
             elif [[ -f "$i" ]]; then
                 echo "[-] Removing file : $i"
-                sudo rm "$i"
+                [[ -n "$enabled" ]] && sudo rm "$i"
             elif [[ -h "$i" ]]; then
                 echo "[-] Removing symlink : $i"
-                sudo rm "$i"
+                [[ -n "$enabled" ]] && sudo rm "$i"
             fi
         done
     done
 }
 
 function cleanup_receipts() {
+    enabled=$1
     for r in "${RAS_RECEIPTS[@]}"; do
         if [[ -n "$r" ]]; then
             echo "[-] Removing package receipts for : $r"
-            sudo pkgutil --forget "$r"
+            [[ -n "$enabled" ]] && sudo pkgutil --forget "$r"
         fi
     done
 }
 
-
-# Get privs
-sudo -l >/dev/null 2>&1
-cleanup_leftovers
-cleanup_receipts
-echo "[+] Done"
+if [[ "$1" =~ "-f" ]]; then
+    # Get privs
+    sudo -l >/dev/null 2>&1
+    cleanup_leftovers
+    cleanup_receipts
+    echo "[+] Done"
+else
+    echo "[!] Check-only mode, use $0 --force to remove files"
+    cleanup_leftovers
+    cleanup_receipts
+    echo "[!] Check-only mode, use $0 --force to remove files"
+fi
