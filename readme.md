@@ -1,6 +1,6 @@
 ### usage
 ```
-$ ./clean.sh
+$ sudo ./clean.sh
 Password:
 [-] Removing file : /Library/LaunchAgents/com.citrix.ServiceRecords.plist
 [-] Removing file : /Library/LaunchAgents/com.citrix.AuthManager_Mac.plist

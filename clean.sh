@@ -1,33 +1,47 @@
 #!/usr/bin/env bash
-# Attempt to remove all traces of RemoteAccess
+# Attempt to cleanup RemoteAccess components
 
 # shellcheck disable=SC2088 # Because we prefer to use tilde than $HOME here
-RAS_ELEMENTS=(
+RAS_ELEMENTS_LIGHT=(
+  # User elements
+    "~/Library/Caches/com.oracle.java.*"
+    "~/Library/Caches/net.pulsesecure.*"
+    "~/Library/Application Support/Pulse Secure/applets"
+)
+
+# shellcheck disable=SC2088 # Because we prefer to use tilde than $HOME here
+RAS_ELEMENTS_FULL=(
   # Root elements
     "/Applications/Citrix Workspace.app"
     "/Library/Application Support/Citrix"
     "/Library/Application Support/Citrix Receiver"
-    "/Library/Application Support/Oracle"
+    "/Library/Application Support/Oracle/Java"
+    "/Library/Application Support/Pulse Secure"
     "/Library/Internet Plug-Ins/JavaAppletPlugin.plugin"
+    "/Library/Java/Extensions"
     "/Library/Java/JavaVirtualMachines/jdk*"
     "/Library/Java/JavaVirtualMachines/jre*"
-    "/Library/LaunchAgents/com.citrix.AuthManager_Mac.plist"
-    "/Library/LaunchAgents/com.citrix.ReceiverHelper.plist"
-    "/Library/LaunchAgents/com.citrix.ServiceRecords.plist"
-    "/Library/LaunchAgents/com.oracle.java.Java-Updater.plist"
-    "/Library/LaunchDaemons/com.citrix.ctxusbd.plist"
-    "/Library/LaunchDaemons/com.oracle.java.Helper-Tool.plist"
+    "/Library/LaunchAgents/com.citrix.*"
+    "/Library/LaunchAgents/com.oracle.java*"
+    "/Library/LaunchDaemons/com.citrix.*"
+    "/Library/LaunchDaemons/com.oracle.java*"
+    "/Library/LaunchDaemons/com.oracle.Java*"
     "/Library/Logs/DiagnosticReports/Citrix Viewer*"
     "/Library/PreferencePanes/Citrix HDX RealTime Media Engine.prefPane"
     "/Library/PreferencePanes/JavaControlPanel.prefPane"
-    "/Library/Preferences/com.oracle.java.Helper-Tool.plist"
-    "/Library/Preferences/com.oracle.java.Java-Updater.plist"
+    "/Library/Preferences/com.oracle.java.*"
+    "/Library/PrivilegedHelperTools/com.oracle.JavaInstallHelper"
+    "/Library/PrivilegedHelperTools/com.oracle.java.JavaUpdateHelper"
     "/Users/Shared/Citrix"
     "/Users/Shared/Citrix Receiver"
     "/private/var/root/Library/Application Support/Citrix Receiver"
     "/usr/local/libexec/AuthManager_Mac.app"
     "/usr/local/libexec/ReceiverHelper.app"
     "/usr/local/libexec/ServiceRecords.app"
+    "/var/db/receipts/com.oracle.jdk*"
+    "/var/db/receipts/com.oracle.jre*"
+    "/var/root/Library/Application Support/Oracle/Java"
+    "/var/root/.oracle_jre_usage"
   # User elements
     "~/Library/Application Support/Citrix"
     "~/Library/Application Support/Citrix Receiver"
@@ -36,28 +50,18 @@ RAS_ELEMENTS=(
     "~/Library/Application Support/Juniper Networks"
     "~/Library/Application Support/Oracle"
     "~/Library/Application Support/Pulse Secure"
-    "~/Library/Application Support/com.citrix.CitrixReceiverLauncher"
-    "~/Library/Application Support/com.citrix.RTMediaEngineSRV"
-    "~/Library/Application Support/com.citrix.ReceiverHelper"
-    "~/Library/Application Support/com.citrix.XenAppViewer"
-    "~/Library/Application Support/com.citrix.receiver.nomas"
+    "~/Library/Application Support/com.citrix.*"
     "~/Library/Caches/com.oracle.java.*"
-    "~/Library/Caches/net.pulsesecure.PulseApplicationLauncher"
-    "~/Library/LaunchAgents/net.pulsesecure.SetupClient.plist"
+    "~/Library/Caches/net.pulsesecure.*"
+    "~/Library/Java/Extensions"
+    "~/Library/LaunchAgents/net.pulsesecure.*"
     "~/Library/Logs/Citrix"
     "~/Library/Logs/Citrix Workspace"
     "~/Library/Logs/DiagnosticReports/HostChecker*"
     "~/Library/Logs/Pulse Secure"
     "~/Library/Logs/PulseSecureAppLauncher.log"
-    "~/Library/Preferences/com.citrix.AuthManager.plist"
-    "~/Library/Preferences/com.citrix.CitrixReceiverLauncher.plist"
-    "~/Library/Preferences/com.citrix.RTMediaEngineSRV.plist"
-    "~/Library/Preferences/com.citrix.ReceiverHelper.plist"
-    "~/Library/Preferences/com.citrix.XenAppViewer.plist"
-    "~/Library/Preferences/com.citrix.receiver.nomas.plist"
-    "~/Library/Preferences/com.oracle.java.JavaAppletPlugin.plist"
-    "~/Library/Preferences/com.oracle.javadeployment.plist"
-    "~/Library/Preferences/com.oracle.javadeployment.plist"
+    "~/Library/Preferences/com.citrix.*"
+    "~/Library/Preferences/com.oracle.java*"
     "~/Library/Receipts/net.pulsesecure.*"
     "~/Library/Saved Application State/com.oracle.java.*"
     "~/Library/WebKit/com.citrix.receiver.nomas"
@@ -71,8 +75,14 @@ while read -r; do
 done <<< "$(pkgutil --packages | grep -Ei 'citrix|pulse|oracle.jdk|oracle.jre')"
 
 function cleanup_leftovers() {
-    enabled="$1"
-    for e in "${RAS_ELEMENTS[@]}"; do
+    level="$1"
+    remove="$2"
+    if [[ "$level" == "light" ]]; then
+        components=("${RAS_ELEMENTS_LIGHT[@]}")
+    else
+        components=("${RAS_ELEMENTS_FULL[@]}")
+    fi
+    for e in "${components[@]}"; do
         # Expand any tilda, etc
         e="${e/#\~/$HOME}"
         OIFS="$IFS"
@@ -83,37 +93,41 @@ function cleanup_leftovers() {
         for i in "${expanded[@]}"; do
             if [[ -d "$i" ]]; then
                 printf "[-] %-25s : %s\n" "Removing directory" "$i"
-                [[ -n "$enabled" ]] && sudo rm -r "$i"
+                [[ -n "$remove" ]] && rm -r "$i"
             elif [[ -f "$i" ]]; then
                 printf "[-] %-25s : %s\n" "Removing file" "$i"
-                [[ -n "$enabled" ]] && sudo rm "$i"
+                [[ -n "$remove" ]] && rm "$i"
             elif [[ -h "$i" ]]; then
                 printf "[-] %-25s : %s\n" "Removing symlink" "$i"
-                [[ -n "$enabled" ]] && sudo rm "$i"
+                [[ -n "$remove" ]] && rm "$i"
             fi
         done
     done
 }
 
 function cleanup_receipts() {
-    enabled=$1
+    remove=$1
     for r in "${RAS_RECEIPTS[@]}"; do
         if [[ -n "$r" ]]; then
             printf "[-] %-25s : %s\n" "Removing package receipts" "$r"
-            [[ -n "$enabled" ]] && sudo pkgutil --forget "$r"
+            [[ -n "$remove" ]] && pkgutil --forget "$r"
         fi
     done
 }
 
 if [[ "$1" =~ "-f" ]]; then
-    # Get or refresh sudo priv cache
-    sudo -v
-    cleanup_leftovers "force"
-    cleanup_receipts "force"
+    # Full cleanup
+    cleanup_receipts "remove"
+    cleanup_leftovers "full" "remove"
+    echo "[+] Done"
+elif [[ "$1" =~ "-l" ]]; then
+    # Light cleanup
+    cleanup_leftovers "light" "remove"
     echo "[+] Done"
 else
-    cleanup_leftovers
+    # Check only
     cleanup_receipts
-    echo "[!] Check-only mode, use $0 --force to remove files"
+    cleanup_leftovers
+    echo "[!] Check-only mode, use $0 [--light | --full] to cleanup files"
     echo "[+] Done"
 fi
